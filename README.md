@@ -51,7 +51,8 @@ Swagger UI: http://localhost:8080/swagger-ui.html
 | GET    | `/api/reservations/{id}`            | 200 / 404               | One reservation                                          |
 | DELETE | `/api/reservations/{id}`            | 204 / 404               | Cancel a reservation                                     |
 
-Every endpoint returns a response record (`RoomResponse`, `ReservationResponse`), never an entity.
+Room and reservation endpoints return `RoomResponse` or `ReservationResponse` records;
+the stats endpoint returns a room-count object. No endpoint returns a JPA entity.
 
 ## Errors
 
@@ -99,11 +100,26 @@ strict comparisons (`new.start < old.end` and `new.end > old.start`), and 11:00 
 **Known limit:** the overlap check reads, then writes. Two requests at the same moment can
 both pass the check. It is a check, not a guarantee.
 
-**SQL Hibernate printed for PUT /api/rooms/{id}:**
+**SQL for a changed `PUT /api/rooms/{id}` (for example, request 27):**
+
+Hibernate first selects the room so the service can update the managed entity. At
+transaction commit, dirty checking detects the changed values and sends an update.
+The exact aliases and formatting can vary by Hibernate version; the statements are
+equivalent to:
 
 ```
-(TODO: paste the console SQL here, and one sentence on why it is a select followed by an update)
+select r1_0.id, r1_0.capacity, r1_0.name
+from room r1_0
+where r1_0.id = ?;
+
+update room
+set capacity = ?, name = ?
+where id = ?;
 ```
+
+For request 26, which sends the existing values, Hibernate still selects the room but
+does not issue an update because dirty checking finds no changes. `RoomService.update`
+has `@Transactional` and does not call `save()`.
 
 ## AI use
 
