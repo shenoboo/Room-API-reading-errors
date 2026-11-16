@@ -13,3 +13,4 @@ public record SignupRequest(
     @Size(min = 8, max = 72, message = "password must be 8 to 72 characters")
     String password
 ) { }
+

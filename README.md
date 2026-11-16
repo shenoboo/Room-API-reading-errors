@@ -182,4 +182,4 @@ has `@Transactional` and does not call `save()`.
 
 ## AI use
 
-AI tools (Google Antigravity with Gemini) were used to implement Spring Security, BCrypt hashing, JWT resource server configuration, refresh token challenge, error handling, and documentation.
+AI tools were used to help with implementing Spring Security, BCrypt hashing, JWT resource server configuration, refresh token challenge, error handling, and documentation.

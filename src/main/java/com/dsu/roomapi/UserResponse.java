@@ -5,3 +5,4 @@ public record UserResponse(Long id, String username, String role) {
         return new UserResponse(user.getId(), user.getUsername(), user.getRole());
     }
 }
+

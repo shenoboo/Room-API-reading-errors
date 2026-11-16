@@ -24,3 +24,4 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
         resolver.resolveException(req, res, null, e);
     }
 }
+

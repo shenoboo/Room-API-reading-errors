@@ -13,3 +13,4 @@ public record TokenResponse(
         this(accessToken, tokenType, expiresIn, null);
     }
 }
+
