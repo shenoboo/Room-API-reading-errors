@@ -1,4 +1,9 @@
-###data.sql
+### data.sql
+
+INSERT INTO app_user (username, password_hash, role) VALUES ('mina',  '$2a$10$ix/.xals1cT5fBy84xYGd./rBgU.YjsOFZ0hS649iIxeUqTiiOLzK', 'USER');
+INSERT INTO app_user (username, password_hash, role) VALUES ('omar',  '$2a$10$Skdch9b59aEX3NRWiV5YcOyPJV0Yj.iwMUZnglgQ0z2UBzFRYNGce', 'USER');
+INSERT INTO app_user (username, password_hash, role) VALUES ('admin', '$2a$10$0fP8ztxDnZHZ9LCfAUC6IOJZm2euVGTIf0pIYoyJPDsxfDtQ2cHoW', 'ADMIN');
+
 INSERT INTO room (name, capacity) VALUES ('Seminar A', 8);
 INSERT INTO room (name, capacity) VALUES ('Study Pod', 4);
 INSERT INTO room (name, capacity) VALUES ('Rooftop Room', 12);
