@@ -1,9 +1,13 @@
 package com.dsu.roomapi;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+// Sign-up has no role field: a "role" sent by the client is ignored (everyone is USER)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record SignupRequest(
     @NotBlank
     @Pattern(regexp = "[a-z0-9]{3,20}", message = "username must be 3 to 20 lowercase letters or digits")

@@ -3,7 +3,7 @@ package com.dsu.roomapi;
 import java.time.LocalDateTime;
 
 public record ReservationResponse(Long id, Long roomId, String roomName,
-                                  String reservedBy,
+                                  String owner,
                                   LocalDateTime startTime, LocalDateTime endTime) {
 
     public static ReservationResponse from(Reservation r) {
@@ -11,7 +11,7 @@ public record ReservationResponse(Long id, Long roomId, String roomName,
                 r.getId(),
                 r.getRoom().getId(),
                 r.getRoom().getName(),
-                r.getReservedBy(),
+                r.getOwner().getUsername(),   // the username, never the AppUser entity
                 r.getStartTime(),
                 r.getEndTime());
     }

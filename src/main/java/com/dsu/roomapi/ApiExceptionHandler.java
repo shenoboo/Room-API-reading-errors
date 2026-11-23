@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -78,6 +79,19 @@ public class ApiExceptionHandler {
             message = "token is invalid or expired";
         }
         return respond(HttpStatus.UNAUTHORIZED, message, request, List.of());
+    }
+
+    // 403 from a service (rule C): we know who you are, but this is not yours
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiError> forbidden(ForbiddenException e, HttpServletRequest request) {
+        return respond(HttpStatus.FORBIDDEN, e.getMessage(), request, List.of());
+    }
+
+    // 403 from a URL rule (rule D), handed over by ApiAccessDeniedHandler
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> accessDenied(AccessDeniedException e,
+                                                 HttpServletRequest request) {
+        return respond(HttpStatus.FORBIDDEN, "admin role required", request, List.of());
     }
 
     // Safety net

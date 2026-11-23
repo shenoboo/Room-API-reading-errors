@@ -2,15 +2,14 @@ package com.dsu.roomapi;
 
 import java.time.LocalDateTime;
 
-import jakarta.validation.constraints.NotBlank;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
+// No reservedBy: the owner is the logged-in account. Nothing to type, nothing to fake.
+// A "reservedBy" sent anyway is ignored (api.http 34).
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record ReservationCreateRequest(
-        @NotBlank(message = "reservedBy is required")
-        @Size(max = 50, message = "reservedBy must be at most 50 characters")
-        String reservedBy,
-
         @NotNull(message = "startTime is required")
         LocalDateTime startTime,
 

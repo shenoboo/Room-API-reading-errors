@@ -1,6 +1,7 @@
 package com.dsu.roomapi;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -20,7 +21,12 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -50,9 +56,11 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           ApiAuthenticationEntryPoint entryPoint) throws Exception {
+                                           ApiAuthenticationEntryPoint entryPoint,
+                                           ApiAccessDeniedHandler deniedHandler) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login", "/api/auth/refresh").permitAll()
@@ -61,16 +69,49 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
                         .requestMatchers("/api/reservations", "/api/reservations/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
+                        // Week 11, rule D: only an ADMIN creates, changes or deletes rooms.
+                        // "/api/rooms/*" is one segment: booking (/api/rooms/1/reservations) is not covered.
+                        .requestMatchers(HttpMethod.POST, "/api/rooms").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/rooms/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/rooms/*").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .httpBasic(b -> b.authenticationEntryPoint(entryPoint))
                 .oauth2ResourceServer(o -> o
                         .authenticationEntryPoint(entryPoint)
-                        .jwt(Customizer.withDefaults())
-                )
-                .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint));
+                        .accessDeniedHandler(deniedHandler)
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(entryPoint)
+                        .accessDeniedHandler(deniedHandler));
 
         return http.build();
     }
-}
 
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter roles =
+                new JwtGrantedAuthoritiesConverter();
+        roles.setAuthoritiesClaimName("role");
+        roles.setAuthorityPrefix("ROLE_");
+        JwtAuthenticationConverter converter =
+                new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(roles);
+        return converter;
+    }
+
+    // CORS: a browser page on another origin (e.g. :5500) may call the API from these origins only.
+    // Not "*": list the pages you trust. Not security by itself; curl and api.http ignore it.
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(
+            @Value("${app.cors.allowed-origins}") String origins) {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(origins.split(",")));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setExposedHeaders(List.of("Location"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", config);
+        return source;
+    }
+}

@@ -1,3 +1,10 @@
+# Week 11: roles and owners. Run reset.sql first: 3 rooms, 3 accounts (mina, omar, admin), 5 reservations.
+#   mina  -> Authorization: Basic bWluYTptaW5hMTIzNA==      (USER)
+#   omar  -> Authorization: Basic b21hcjpvbWFyMTIzNA==      (USER)
+#   admin -> Authorization: Basic YWRtaW46YWRtaW4xMjM0      (ADMIN)
+# Room changes (POST, PUT, DELETE /api/rooms) now use admin (rule D). Bookings use mina; the owner is the login (rule C).
+# Week 10 requests that changed are marked "Week 11".
+
 ### 1. List all rooms (expect 200, 3 rooms)
 GET http://localhost:8080/api/rooms
 
@@ -18,45 +25,45 @@ GET http://localhost:8080/api/rooms/99
 
 ### 7. Create (expect 201 + Location: /api/rooms/4)
 POST http://localhost:8080/api/rooms
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 Content-Type: application/json
 
-{ "name": "Library", "capacity": 12 }
+{ "name": "Rooftop", "capacity": 12 }
 
 ### 8. Replace (expect 200)
 PUT http://localhost:8080/api/rooms/4
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 Content-Type: application/json
 
 { "name": "Roof", "capacity": 10 }
 
 ### 9. Replace missing room (expect 404)
 PUT http://localhost:8080/api/rooms/99
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 Content-Type: application/json
 
 { "name": "Ghost", "capacity": 5 }
 
-### 10. Delete the room created in 7 (expect 204)
+### 10. Delete (expect 204)
 DELETE http://localhost:8080/api/rooms/4
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 
 ### 11. Delete again (expect 404)
 DELETE http://localhost:8080/api/rooms/4
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 
 ### ---------- Week 4 additions ----------
 
 ### 12. Capacity 0 is rejected by the service (expect 400)
 POST http://localhost:8080/api/rooms
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 Content-Type: application/json
 
 { "name": "Closet", "capacity": 0 }
 
 ### 13. Capacity 50 is rejected (expect 400)
 PUT http://localhost:8080/api/rooms/1
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 Content-Type: application/json
 
 { "name": "Seminar A", "capacity": 50 }
@@ -64,100 +71,100 @@ Content-Type: application/json
 ### 14. Stats: another controller sees the same data (expect {"rooms": 3})
 GET http://localhost:8080/api/stats
 
-### ---------- Week 7 additions (run reset.sql first, then 1 to 41 in order) ----------
+### ---------- Week 7: reservations (run reset.sql first) ----------
 
-### 15. Reservations of room 1 (expect 200, 3 items)
+### 15. Reservations of room 1, ordered by start (expect 200, 3; owners mina, omar, omar)
 GET http://localhost:8080/api/rooms/1/reservations
 
 ### 16. Reservations of a missing room (expect 404)
 GET http://localhost:8080/api/rooms/99/reservations
 
-### 17. Book room 1, 14 Oct 10-11 (expect 201, Location: /api/reservations/6)
+### 17. Book room 1 as mina (expect 201 + Location: /api/reservations/6, "owner": "mina")
 POST http://localhost:8080/api/rooms/1/reservations
 Authorization: Basic bWluYTptaW5hMTIzNA==
 Content-Type: application/json
 
-{ "reservedBy": "Kim", "startTime": "2026-10-14T10:00:00", "endTime": "2026-10-14T11:00:00" }
+{ "startTime": "2026-10-14T10:00:00", "endTime": "2026-10-14T11:00:00" }
 
-### 18. Overlaps Mina 10:00-11:00 (expect 409)
+### 18. Overlaps Mina's 10:00-11:00 on 6 October (expect 409)
 POST http://localhost:8080/api/rooms/1/reservations
 Authorization: Basic bWluYTptaW5hMTIzNA==
 Content-Type: application/json
 
-{ "reservedBy": "Lee", "startTime": "2026-10-06T10:30:00", "endTime": "2026-10-06T11:30:00" }
+{ "startTime": "2026-10-06T10:30:00", "endTime": "2026-10-06T11:30:00" }
 
-### 19. Starts exactly when Mina ends, touching is fine (expect 201, Location: /api/reservations/7)
+### 19. Starts exactly when Mina's ends: touching is not overlapping (expect 201 + /api/reservations/7)
 POST http://localhost:8080/api/rooms/1/reservations
 Authorization: Basic bWluYTptaW5hMTIzNA==
 Content-Type: application/json
 
-{ "reservedBy": "Lee", "startTime": "2026-10-06T11:00:00", "endTime": "2026-10-06T12:00:00" }
+{ "startTime": "2026-10-06T11:00:00", "endTime": "2026-10-06T12:00:00" }
 
 ### 20. End before start (expect 400)
 POST http://localhost:8080/api/rooms/1/reservations
 Authorization: Basic bWluYTptaW5hMTIzNA==
 Content-Type: application/json
 
-{ "reservedBy": "Lee", "startTime": "2026-10-15T12:00:00", "endTime": "2026-10-15T11:00:00" }
+{ "startTime": "2026-10-15T12:00:00", "endTime": "2026-10-15T11:00:00" }
 
-### 21. Missing room (expect 404)
+### 21. Book a missing room (expect 404)
 POST http://localhost:8080/api/rooms/99/reservations
 Authorization: Basic bWluYTptaW5hMTIzNA==
 Content-Type: application/json
 
-{ "reservedBy": "Lee", "startTime": "2026-10-16T10:00:00", "endTime": "2026-10-16T11:00:00" }
+{ "startTime": "2026-10-15T10:00:00", "endTime": "2026-10-15T11:00:00" }
 
-### 22. Mina's reservations (expect 200, 2 items, exactly one select in the console)
-GET http://localhost:8080/api/reservations?reservedBy=Mina
+### 22. My reservations — mina's, with room names, in one JOIN (expect 200, 4: ids 3, 1, 7, 6). Week 11: was ?reservedBy=Mina
+GET http://localhost:8080/api/reservations/mine
 Authorization: Basic bWluYTptaW5hMTIzNA==
 
-### 23. Delete a room that has reservations (expect 409)
+### 23. Delete a room that has reservations (expect 409; admin passes rule D, then the 409 rule refuses)
 DELETE http://localhost:8080/api/rooms/1
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 
-### ---------- Assignment 5 additions ----------
+### ---------- Assignment 5 ----------
 
-### 24. One reservation (expect 200)
+### 24. One reservation (expect 200, owner mina, Seminar A)
 GET http://localhost:8080/api/reservations/6
 Authorization: Basic bWluYTptaW5hMTIzNA==
 
-### 25. Cancel a reservation (expect 204)
-DELETE http://localhost:8080/api/reservations/6
+### 25. Cancel a reservation (expect 204: mina owns 7)
+DELETE http://localhost:8080/api/reservations/7
 Authorization: Basic bWluYTptaW5hMTIzNA==
 
 ### ---------- Week 9 in class: dirty checking and error bodies (rooms) ----------
 
 ### 26. Same values again (expect 200; console: one select, no update)
 PUT http://localhost:8080/api/rooms/2
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 Content-Type: application/json
 
 { "name": "Study Pod", "capacity": 4 }
 
 ### 27. New values (expect 200; console: select, then update)
 PUT http://localhost:8080/api/rooms/2
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 Content-Type: application/json
 
 { "name": "Study Pod XL", "capacity": 6 }
 
 ### 28. Blank name (expect 400, fieldErrors: name)
 POST http://localhost:8080/api/rooms
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 Content-Type: application/json
 
 { "name": "", "capacity": 5 }
 
 ### 29. Capacity 0 (expect 400, fieldErrors: capacity)
 POST http://localhost:8080/api/rooms
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 Content-Type: application/json
 
 { "name": "Closet", "capacity": 0 }
 
 ### 30. Two bad fields (expect 400, two fieldErrors)
 POST http://localhost:8080/api/rooms
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 Content-Type: application/json
 
 { "name": "", "capacity": 50 }
@@ -167,52 +174,52 @@ GET http://localhost:8080/api/rooms/99
 
 ### 32. Room with reservations (expect 409, message "room 1 has reservations")
 DELETE http://localhost:8080/api/rooms/1
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 
 ### 33. A URL that does not exist (expect 404, not 500)
 GET http://localhost:8080/api/nothing
 
 ### ---------- Week 9 Lab E: reservations and bad input ----------
 
-### 34. Blank reservedBy (expect 400, fieldErrors: reservedBy)
+### 34. Week 11: a reservedBy in the body is ignored. The owner is the login, not omar (expect 201 + /api/reservations/8, "owner": "mina")
 POST http://localhost:8080/api/rooms/1/reservations
 Authorization: Basic bWluYTptaW5hMTIzNA==
 Content-Type: application/json
 
-{ "reservedBy": "", "startTime": "2026-11-02T10:00:00", "endTime": "2026-11-02T11:00:00" }
+{ "reservedBy": "omar", "startTime": "2026-11-02T10:00:00", "endTime": "2026-11-02T11:00:00" }
 
 ### 35. Missing endTime (expect 400, fieldErrors: endTime)
 POST http://localhost:8080/api/rooms/1/reservations
 Authorization: Basic bWluYTptaW5hMTIzNA==
 Content-Type: application/json
 
-{ "reservedBy": "Lee", "startTime": "2026-11-02T10:00:00" }
+{ "startTime": "2026-11-02T10:00:00" }
 
 ### 36. End before start (expect 400, message "startTime must be before endTime")
 POST http://localhost:8080/api/rooms/1/reservations
 Authorization: Basic bWluYTptaW5hMTIzNA==
 Content-Type: application/json
 
-{ "reservedBy": "Lee", "startTime": "2026-11-02T12:00:00", "endTime": "2026-11-02T11:00:00" }
+{ "startTime": "2026-11-02T12:00:00", "endTime": "2026-11-02T11:00:00" }
 
 ### 37. Overlaps Mina (expect 409, message "room 1 is already booked at that time")
 POST http://localhost:8080/api/rooms/1/reservations
 Authorization: Basic bWluYTptaW5hMTIzNA==
 Content-Type: application/json
 
-{ "reservedBy": "Lee", "startTime": "2026-10-06T10:30:00", "endTime": "2026-10-06T11:30:00" }
+{ "startTime": "2026-10-06T10:30:00", "endTime": "2026-10-06T11:30:00" }
 
 ### 38. Missing reservation (expect 404, message "reservation 99 not found")
 GET http://localhost:8080/api/reservations/99
 Authorization: Basic bWluYTptaW5hMTIzNA==
 
-### 39. Missing query parameter (expect 400)
-GET http://localhost:8080/api/reservations
+### 39. Not an id (expect 400, "'id' has the wrong type"). Week 11: the ?reservedBy= search is gone
+GET http://localhost:8080/api/reservations/abc
 Authorization: Basic bWluYTptaW5hMTIzNA==
 
 ### 40. Not a number (expect 400, "request body is missing or is not valid JSON")
 POST http://localhost:8080/api/rooms
-Authorization: Basic bWluYTptaW5hMTIzNA==
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
 Content-Type: application/json
 
 { "name": "Lab", "capacity": "ten" }
@@ -220,110 +227,269 @@ Content-Type: application/json
 ### 41. Not an id (expect 400, "'id' has the wrong type")
 GET http://localhost:8080/api/rooms/abc
 
-### ---------- Week 10: HTTP Basic, sign-up, 401 in ApiError (slide 21) ----------
+### ---------- Week 10, hour 2: Spring Security and HTTP Basic ----------
 
-### 42. POST room, no login (expect 401, "login required")
+### 42. Create a room without logging in (expect 401, message "login required")
 POST http://localhost:8080/api/rooms
 Content-Type: application/json
 
-{ "name": "Secret Room", "capacity": 6 }
+{ "name": "Quiet Room", "capacity": 6 }
 
-### 43. Sign up lee / lee12345 (expect 201, id, username, role)
+### 43. Sign up (expect 201; the body has id, username and role, never the password)
 POST http://localhost:8080/api/auth/signup
 Content-Type: application/json
 
 { "username": "lee", "password": "lee12345" }
 
-### 44. Sign up lee again (expect 409, username lee is taken)
+### 44. Same username again (expect 409, "username lee is taken")
 POST http://localhost:8080/api/auth/signup
 Content-Type: application/json
 
-{ "username": "lee", "password": "lee12345" }
+{ "username": "lee", "password": "another123" }
 
-### 45. Sign up Lee! / short (expect 400, two fieldErrors)
+### 45. Bad signup (expect 400, fieldErrors: username and password)
 POST http://localhost:8080/api/auth/signup
 Content-Type: application/json
 
 { "username": "Lee!", "password": "short" }
 
-### 46. POST room as lee (Basic) (expect 201, Location: /api/rooms/5)
+### 46. Create a room as lee (Week 11: expect 403, "admin role required" — rule D)
 POST http://localhost:8080/api/rooms
+Content-Type: application/json
 Authorization: Basic bGVlOmxlZTEyMzQ1
-Content-Type: application/json
 
-{ "name": "Focus Room", "capacity": 4 }
+{ "name": "Quiet Room", "capacity": 6 }
 
-### 47. POST room, wrong password (expect 401, "wrong username or password")
+### 47. Wrong password (expect 401, "wrong username or password")
 POST http://localhost:8080/api/rooms
-Authorization: Basic bGVlOndyb25n
 Content-Type: application/json
+Authorization: Basic bGVlOndyb25ncGFzcw==
 
-{ "name": "Hacker Room", "capacity": 4 }
+{ "name": "Quiet Room 2", "capacity": 6 }
 
-### 48. GET rooms, no login (expect 200, 4 rooms)
+### 48. Reading is still public (expect 200, 3 rooms: 46 was refused in Week 11)
 GET http://localhost:8080/api/rooms
 
-### 49. GET /api/auth/me as lee (expect 200, lee, ROLE_USER)
+### 49. Who am I? (expect 200, username lee, authorities include "ROLE_USER")
 GET http://localhost:8080/api/auth/me
 Authorization: Basic bGVlOmxlZTEyMzQ1
 
-### ---------- Week 10: Tokens: login, Bearer, broken token (slide 28) ----------
+### ---------- Week 10, hour 3: a token instead of the password ----------
 
-### 50. Log in (expect 200, accessToken)
+### 50. Log in (expect 200, accessToken, tokenType "Bearer", expiresIn 1800). The script keeps the token.
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{ "username": "lee", "password": "lee12345" }
+
+> {% client.global.set("token", response.body.accessToken); %}
+
+### 51. Log in with a wrong password (expect 401, "wrong username or password")
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{ "username": "lee", "password": "wrongpass" }
+
+### 52. Who am I, with the token? (Week 11: expect 200, username lee, authorities include "ROLE_USER")
+GET http://localhost:8080/api/auth/me
+Authorization: Bearer {{token}}
+
+### 53. Create a room with the token (Week 11: expect 403, "admin role required" — lee is a USER)
+POST http://localhost:8080/api/rooms
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "name": "Token Room", "capacity": 3 }
+
+### 54. A broken token (expect 401, "token is invalid or expired")
+POST http://localhost:8080/api/rooms
+Content-Type: application/json
+Authorization: Bearer abc.def.ghi
+
+{ "name": "Fake Room", "capacity": 3 }
+
+### 55. A broken token on a public GET (expect 401: a token that is sent is always checked)
+GET http://localhost:8080/api/rooms
+Authorization: Bearer abc.def.ghi
+
+### ---------- Week 10 Lab F ----------
+
+### 56. My reservations without logging in (expect 401, "login required")
+GET http://localhost:8080/api/reservations/mine
+
+
+### ---------- Week 11, hour 1: roles (rule D) ----------
+
+### 57. Sign up and ask for ADMIN (expect 201, "role": "USER": the client cannot choose its role)
+POST http://localhost:8080/api/auth/signup
+Content-Type: application/json
+
+{ "username": "kim", "password": "kim12345", "role": "ADMIN" }
+
+### 58. Log in as admin (expect 200). The script keeps the token as adminToken.
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{ "username": "admin", "password": "admin1234" }
+
+> {% client.global.set("adminToken", response.body.accessToken); %}
+
+### 59. Who am I, with the admin token? (expect 200, authorities include "ROLE_ADMIN")
+GET http://localhost:8080/api/auth/me
+Authorization: Bearer {{adminToken}}
+
+### 60. Admin creates a room with the token (expect 201 + Location: /api/rooms/5)
+POST http://localhost:8080/api/rooms
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{ "name": "Admin Room", "capacity": 6 }
+
+### 61. mina creates a room (expect 403, "admin role required")
+POST http://localhost:8080/api/rooms
+Content-Type: application/json
+Authorization: Basic bWluYTptaW5hMTIzNA==
+
+{ "name": "Mina Room", "capacity": 4 }
+
+### 62. lee changes room 5 with his token (expect 403, "admin role required")
+PUT http://localhost:8080/api/rooms/5
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "name": "Lee Room", "capacity": 4 }
+
+### 63. Nobody logged in deletes room 5 (expect 401, not 403: we don't know who you are yet)
+DELETE http://localhost:8080/api/rooms/5
+
+### 64. mina books room 5 (expect 201 + /api/reservations/9: "/api/rooms/*" does not match /api/rooms/5/reservations)
+POST http://localhost:8080/api/rooms/5/reservations
+Content-Type: application/json
+Authorization: Basic bWluYTptaW5hMTIzNA==
+
+{ "startTime": "2026-11-20T10:00:00", "endTime": "2026-11-20T11:00:00" }
+
+### 65. Admin deletes room 5 (expect 409, "room 5 has reservations": rule D lets admin in, the 409 rule still applies)
+DELETE http://localhost:8080/api/rooms/5
+Authorization: Bearer {{adminToken}}
+
+### ---------- Week 11, hour 2: owners (rule C) ----------
+
+### 66. mina's reservations (expect 200, 5: ids 3, 1, 6, 8, 9)
+GET http://localhost:8080/api/reservations/mine
+Authorization: Basic bWluYTptaW5hMTIzNA==
+
+### 67. omar's reservations (expect 200, 3: ids 2, 4, 5)
+GET http://localhost:8080/api/reservations/mine
+Authorization: Basic b21hcjpvbWFyMTIzNA==
+
+### 68. omar reads mina's reservation (expect 403, "reservation 9 belongs to another user")
+GET http://localhost:8080/api/reservations/9
+Authorization: Basic b21hcjpvbWFyMTIzNA==
+
+### 69. Admin reads it (expect 200: the owner or an admin)
+GET http://localhost:8080/api/reservations/9
+Authorization: Bearer {{adminToken}}
+
+### 70. omar cancels mina's reservation (expect 403)
+DELETE http://localhost:8080/api/reservations/9
+Authorization: Basic b21hcjpvbWFyMTIzNA==
+
+### 71. omar reads a reservation that does not exist (expect 404: we look it up before we check the owner)
+GET http://localhost:8080/api/reservations/99
+Authorization: Basic b21hcjpvbWFyMTIzNA==
+
+### ---------- Week 11 Lab G: PUT /api/reservations/{id} — the owner only ----------
+
+### 72. mina moves her reservation (expect 200, 14:00 to 15:00)
+PUT http://localhost:8080/api/reservations/9
+Content-Type: application/json
+Authorization: Basic bWluYTptaW5hMTIzNA==
+
+{ "startTime": "2026-11-20T14:00:00", "endTime": "2026-11-20T15:00:00" }
+
+### 73. The same time again (expect 200: a reservation does not overlap itself)
+PUT http://localhost:8080/api/reservations/9
+Content-Type: application/json
+Authorization: Basic bWluYTptaW5hMTIzNA==
+
+{ "startTime": "2026-11-20T14:00:00", "endTime": "2026-11-20T15:00:00" }
+
+### 74. omar moves mina's reservation (expect 403)
+PUT http://localhost:8080/api/reservations/9
+Content-Type: application/json
+Authorization: Basic b21hcjpvbWFyMTIzNA==
+
+{ "startTime": "2026-11-20T16:00:00", "endTime": "2026-11-20T17:00:00" }
+
+### 75. Admin moves it (expect 403: changing is for the owner only, not the admin)
+PUT http://localhost:8080/api/reservations/9
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{ "startTime": "2026-11-20T16:00:00", "endTime": "2026-11-20T17:00:00" }
+
+### 76. mina moves reservation 6 onto her own 10:00-11:00 on 6 October (expect 409, "room 1 is already booked at that time")
+PUT http://localhost:8080/api/reservations/6
+Content-Type: application/json
+Authorization: Basic bWluYTptaW5hMTIzNA==
+
+{ "startTime": "2026-10-06T10:30:00", "endTime": "2026-10-06T11:30:00" }
+
+### 77. End before start (expect 400, "startTime must be before endTime")
+PUT http://localhost:8080/api/reservations/9
+Content-Type: application/json
+Authorization: Basic bWluYTptaW5hMTIzNA==
+
+{ "startTime": "2026-11-20T15:00:00", "endTime": "2026-11-20T14:00:00" }
+
+### 78. A reservation that does not exist (expect 404)
+PUT http://localhost:8080/api/reservations/99
+Content-Type: application/json
+Authorization: Basic bWluYTptaW5hMTIzNA==
+
+{ "startTime": "2026-11-20T14:00:00", "endTime": "2026-11-20T15:00:00" }
+
+### 79. Admin cancels mina's reservation (expect 204: the owner or an admin)
+DELETE http://localhost:8080/api/reservations/9
+Authorization: Bearer {{adminToken}}
+
+### 80. Now room 5 is empty: admin deletes it (expect 204)
+DELETE http://localhost:8080/api/rooms/5
+Authorization: Bearer {{adminToken}}
+
+### ---------- Week 11, hour 3: CORS (what a browser asks first) ----------
+
+### 81. Preflight from Live Server (expect 200 and Access-Control-Allow-Origin: http://localhost:5500)
+OPTIONS http://localhost:8080/api/rooms
+Origin: http://localhost:5500
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: authorization, content-type
+
+### 82. Preflight from a page we did not list (expect 403, body "Invalid CORS request" — not ApiError: the CORS filter answers first)
+OPTIONS http://localhost:8080/api/rooms
+Origin: http://evil.example
+Access-Control-Request-Method: POST
+
+### ---------- Optional challenge: refresh token and logout (not part of 1-82) ----------
+
+### 83. Log in as lee and keep the refresh token (expect 200, accessToken and refreshToken)
 POST http://localhost:8080/api/auth/login
 Content-Type: application/json
 
 { "username": "lee", "password": "lee12345" }
 
 > {%
-  client.global.set("token", response.body.accessToken);
-  if (response.body.refreshToken) {
-    client.global.set("refreshToken", response.body.refreshToken);
-  }
+  client.global.set("refreshToken", response.body.refreshToken);
 %}
 
-### 51. Login, wrong password (expect 401, "wrong username or password")
-POST http://localhost:8080/api/auth/login
-Content-Type: application/json
-
-{ "username": "lee", "password": "wrongpassword" }
-
-### 52. Who am I? (expect 200, lee, no ROLE_USER)
-GET http://localhost:8080/api/auth/me
-Authorization: Bearer {{token}}
-
-### 53. POST room with the token (expect 201, Location: /api/rooms/6)
-POST http://localhost:8080/api/rooms
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{ "name": "Boardroom", "capacity": 10 }
-
-### 54. POST room, broken token (expect 401, "token is invalid or expired")
-POST http://localhost:8080/api/rooms
-Authorization: Bearer broken.token.here
-Content-Type: application/json
-
-{ "name": "Broken Room", "capacity": 5 }
-
-### 55. GET rooms, broken token (expect 401, "token is invalid or expired")
-GET http://localhost:8080/api/rooms
-Authorization: Bearer broken.token.here
-
-### ---------- Lab F: Reservations without login (slide 33) ----------
-
-### 56. Reservations without login (expect 401, "login required")
-GET http://localhost:8080/api/reservations
-
-### ---------- Optional Challenge: Refresh Token & Logout ----------
-
-### 57. Exchange refresh token for new access token (expect 200)
+### 84. Exchange the refresh token for a new access token (expect 200)
 POST http://localhost:8080/api/auth/refresh
 Content-Type: application/json
 
 { "refreshToken": "{{refreshToken}}" }
 
-### 58. Logout (expect 204)
+### 85. Log out (expect 204)
 POST http://localhost:8080/api/auth/logout
 Content-Type: application/json
 
