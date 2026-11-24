@@ -232,6 +232,39 @@ A 403 has the same shape:
 }
 ```
 
+## Tests
+
+```
+./gradlew test             # macOS / Linux
+gradlew.bat test           # Windows
+```
+
+In IntelliJ: click the green arrow next to a test class, or next to a single test.
+             right-click the `src/test/java` folder and choose Run 'Tests in ...' to run every test class together
+
+The submitted run consists of: ReservationServiceTest, ApiFailureTest and RoomApiApplicationTests
+
+**MySQL must be running, and `reset.sql` must have been run first** (database `roomdb`, user
+`roomapp`, as in Database setup). The API tests start the whole application and read MySQL; they
+expect the reset data (for example, mina owns reservations 1 and 3). If MySQL is off, every API
+test fails with `Failed to load ApplicationContext`. The service tests need nothing: no Spring,
+no server, no database. Settings come from the same environment variables and defaults as `bootRun`.
+
+| Test class | Kind | What it checks |
+|------------|------|----------------|
+| `ReservationServiceTest` (9 tests) | Service, JUnit + Mockito, no database | `create`: end before start (`IllegalArgumentException`), missing room (`NotFoundException`), overlap (`ConflictException`), saves with the logged-in owner. `delete`: another user (`ForbiddenException`), owner may, admin may. `update`: admin may not (`ForbiddenException`), a busy time is a `ConflictException` and the reservation does not move. |
+| `ApiFailureTest` (10 tests) | API, `@SpringBootTest` + MockMvc, `@Transactional` | The seven failures, each checking status and message: overlap 409, end before start 400, another user's reservation 403, user creating a room 403, no login 401, room with reservations 409, missing field 400 (`fieldErrors[0].field`). Plus: admin creating a room 201 with `Location`, wrong password 401, missing reservation 404. |
+| `RoomApiApplicationTests` | Smoke | The application context starts with the database. |
+
+Every API test is `@Transactional`, so its changes are rolled back and the rows stay as `reset.sql`
+left them. The `AUTO_INCREMENT` counter does move on, though: run `reset.sql` again before you
+use `api.http` (its Location checks, such as `/api/rooms/4`, assume a fresh reset).
+
+A service test checks the exception (the service throws; `ApiExceptionHandler` turns it into a
+status). An API test checks the status and the `ApiError` message.
+
+Screenshot of the green run (all tests passed): `docs/tests-passed.png`.
+
 ## Design notes
 
 **Which layer answers 409 for DELETE /api/rooms/{id}?**
@@ -269,4 +302,4 @@ has `@Transactional` and does not call `save()`.
 
 ## AI use
 
-AI tools were used to help with implementing Spring Security, BCrypt hashing, JWT resource server configuration, refresh token challenge, roles and ownership (403), CORS, error handling, and documentation.
+AI tools were used to help with implementing Spring Security, BCrypt hashing, JWT resource server configuration, refresh token challenge, roles and ownership (403), CORS, error handling, the JUnit/Mockito/MockMvc tests, and documentation.
